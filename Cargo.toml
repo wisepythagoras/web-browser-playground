@@ -1,0 +1,11 @@
+[package]
+name = "web-browser"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+boa_engine = "0.14.0"
+tap = "1.0.1"
+sys-locale = "0.2.0"
