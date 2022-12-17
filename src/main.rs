@@ -22,6 +22,15 @@ fn myfunction(
 	    },
 	    None    => println!("No return value."),
 	}
+	match args.get(1) {
+	    Some(arg) => {
+	    	match arg.as_string() {
+	   		    Some(x) => println!("Argument to function: {}", x),
+	   		    None    => println!("No return value."),
+	   		}
+	    },
+	    None    => println!("No return value."),
+	}
 
 	args.get(0)
 	    .cloned()
@@ -33,7 +42,7 @@ fn main() {
 	let script = r#"
 	const test = (arg1) => {
 	    if(arg1 != null) {
-	        return myfn(arg1.x);
+	        return myfn(arg1.x, "this is a test");
 	    }
 	    return 112233;
 	};
@@ -109,14 +118,14 @@ fn main() {
 
 	assert_eq!(value.as_number(), Some(144.0));
 
-	let value = context.eval("JSON.stringify({a:123});").unwrap();
+	let value = context.eval("JSON.stringify(navigator.languages);").unwrap();
 
 	match value.as_string() {
 	    Some(x) => println!("Result: {}", x),
 	    None    => println!("No return value."),
 	}
 
-	let value = context.eval("navigator.language;").unwrap();
+	let value = context.eval("`${navigator.userAgent} - CPUs: ${navigator.hardwareConcurrency}`;").unwrap();
 
 	match value.as_string() {
 	    Some(x) => println!("Result: {}", x),

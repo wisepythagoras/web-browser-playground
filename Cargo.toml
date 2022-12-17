@@ -6,6 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-boa_engine = "0.14.0"
+boa_engine = "0.16.0"
+boa_gc = "0.16.0"
+gc = { version = "0.4.1", features = ["derive"] }
 tap = "1.0.1"
 sys-locale = "0.2.0"
+num_cpus = "1.14.0"
+# mozjs = { git = "https://github.com/servo/mozjs", version = "0.14.1"}

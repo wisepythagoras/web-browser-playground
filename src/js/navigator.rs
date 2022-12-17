@@ -1,18 +1,21 @@
 use boa_engine::{
-    object::ObjectInitializer,
+    object::{JsArray, ObjectInitializer},
     symbol::WellKnownSymbols,
     property::Attribute,
     value::JsValue,
     Context,
-    JsResult,
+    // JsResult,
 };
+
 use sys_locale::get_locale;
 use tap::{Conv, Pipe};
+use num_cpus;
 
 static APP_NAME: &str = "Leebra";
 static APP_ENGINE: &str = "LE";
 static APP_VERSION: &str = "0.1.0";
 static DEFAULT_LOCALE: &str = "en_US";
+static LANGUAGES: &'static [&str] = &[DEFAULT_LOCALE, "en"];
 static BUILD_ID: &str = "(none)";
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -25,12 +28,20 @@ impl Navigator {
         let attribute = Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::PERMANENT;
         let to_string_tag = WellKnownSymbols::to_string_tag();
         let locale = get_locale().unwrap_or_else(|| String::from(DEFAULT_LOCALE));
+        let languages = JsArray::new(context);
+        
+        for val in LANGUAGES {
+            languages.push(*val, context).ok()?;
+        }
 
         ObjectInitializer::new(context)
             .property("appCodeName", APP_NAME, attribute)
             .property("appName", APP_NAME, attribute)
             .property("appVersion", APP_VERSION, attribute)
+            .property("cookieEnabled", false, attribute)
+            .property("hardwareConcurrency", num_cpus::get(), attribute)
             .property("language", locale, attribute)
+            .property("languages", languages, attribute)
             .property("buildID", BUILD_ID, attribute)
             .property("userAgent", Self::get_user_agent(), attribute)
             .property(to_string_tag, Self::NAME, attribute)
