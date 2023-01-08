@@ -8,5 +8,9 @@ const test = (arg1) => {
     return NaN;
 };
 
+const host = `${navigator.userAgent} - CPUs: ${navigator.hardwareConcurrency}`;
+
 console.log(test());
 console.log(test({ x: 123 }));
+console.error(JSON.stringify(navigator.languages), host);
+console.warn(function() {});

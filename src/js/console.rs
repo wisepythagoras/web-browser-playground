@@ -1,4 +1,5 @@
 use boa_engine::{
+    context,
     object::{FunctionBuilder, JsFunction, ObjectInitializer},
     property::Attribute,
     symbol::WellKnownSymbols,
@@ -18,9 +19,13 @@ impl Console {
         let attribute = Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::PERMANENT;
         let to_string_tag = WellKnownSymbols::to_string_tag();
         let log_fn = Self::create_log_fn(context);
+        let warn_fn = Self::create_log_fn(context);
+        let err_fn = Self::create_log_fn(context);
 
         ObjectInitializer::new(context)
             .property("log", log_fn, attribute)
+            .property("warn", warn_fn, attribute)
+            .property("error", err_fn, attribute)
             .property(to_string_tag, Self::NAME, attribute)
             .build()
             .conv::<JsValue>()
@@ -64,8 +69,13 @@ impl Console {
                     }
                 } else if a_type == "object" {
                     print!("[object Object]");
+                } else if a_type == "function" {
+                    match arg.as_callable() {
+                        Some(_) => print!("function () {} {}", '{', '}'),
+                        None => {}
+                    }
                 } else {
-                    print!("{}", a_type);
+                    print!("{} {:?}", a_type, arg);
                 }
             }
             None => print!(""),
