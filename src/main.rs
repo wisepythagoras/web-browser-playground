@@ -1,4 +1,5 @@
 mod js {
+    pub mod clipboard;
     pub mod console;
     pub mod navigator;
 }
@@ -12,7 +13,7 @@ use boa_engine::{
     JsString,
     JsValue,
 };
-use js::{console::Console, navigator::Navigator};
+use js::{clipboard::Clipboard, console::Console, navigator::Navigator};
 use std::{env, fs, process};
 
 fn myfunction(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
@@ -53,8 +54,6 @@ fn main() {
         }
     };
 
-    // println!("{}", file_data);
-
     let mut context = Context::default();
     let navigator = Navigator::init(&mut context);
 
@@ -74,12 +73,20 @@ fn main() {
         None => println!("Error assigning console"),
     };
 
+    let clipboard = Clipboard::init(&mut context);
+
+    match clipboard {
+        Some(val) => {
+            context.register_global_property("clipboard", val, Attribute::READONLY);
+        }
+        None => println!("Error assigning clipboard"),
+    };
+
     create_myfn(&mut context);
 
     context.register_global_builtin_function("myfn", 1, myfunction);
 
     let res = context.eval(file_data);
-    let err: &JsString = &JsString::empty();
 
     match res {
         Ok(_) => println!("Script was run"),

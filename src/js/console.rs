@@ -18,9 +18,9 @@ impl Console {
     pub(crate) fn init(context: &mut Context) -> Option<JsValue> {
         let attribute = Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::PERMANENT;
         let to_string_tag = WellKnownSymbols::to_string_tag();
-        let log_fn = Self::create_log_fn(context);
-        let warn_fn = Self::create_log_fn(context);
-        let err_fn = Self::create_log_fn(context);
+        let log_fn = Self::create_log_fn(context, "log");
+        let warn_fn = Self::create_log_fn(context, "warn");
+        let err_fn = Self::create_log_fn(context, "err");
 
         ObjectInitializer::new(context)
             .property("log", log_fn, attribute)
@@ -32,7 +32,7 @@ impl Console {
             .pipe(Some)
     }
 
-    fn create_log_fn(context: &mut Context) -> JsFunction {
+    fn create_log_fn(context: &mut Context, name: &str) -> JsFunction {
         FunctionBuilder::native(context, |_this, args, context| {
             let mut i = 0;
 
@@ -46,7 +46,7 @@ impl Console {
 
             Ok(JsValue::Undefined)
         })
-        .name("log")
+        .name(name)
         .build()
     }
 
