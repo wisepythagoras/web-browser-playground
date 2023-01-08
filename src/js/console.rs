@@ -1,5 +1,4 @@
 use boa_engine::{
-    context,
     object::{FunctionBuilder, JsFunction, ObjectInitializer},
     property::Attribute,
     symbol::WellKnownSymbols,

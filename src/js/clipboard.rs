@@ -15,6 +15,8 @@ use tap::{Conv, Pipe};
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Clipboard;
 
+// Implementation of the Clibpboard API:
+// https://developer.mozilla.org/en-US/docs/Web/API/Clipboard
 impl Clipboard {
     const NAME: &'static str = "Clipboard";
 
