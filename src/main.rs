@@ -5,13 +5,9 @@ mod js {
 }
 
 use boa_engine::{
-    //builtins::BuiltIn,
     object::{FunctionBuilder, ObjectInitializer},
     property::Attribute,
-    Context,
-    JsResult,
-    JsString,
-    JsValue,
+    Context, JsResult, JsString, JsValue,
 };
 use js::{clipboard::Clipboard, console::Console, navigator::Navigator};
 use std::{env, fs, process};
