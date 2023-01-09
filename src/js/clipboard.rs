@@ -8,7 +8,9 @@ use boa_engine::{
 };
 use clipboard::ClipboardContext;
 use clipboard::ClipboardProvider;
-use wl_clipboard_rs::copy::{MimeType, Options, Source};
+use std::io::Read;
+use wl_clipboard_rs::copy::{self, Options, Source};
+use wl_clipboard_rs::paste::{self, get_contents, ClipboardType, Error, Seat};
 
 use tap::{Conv, Pipe};
 
@@ -24,9 +26,11 @@ impl Clipboard {
         let attribute = Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::PERMANENT;
         let to_string_tag = WellKnownSymbols::to_string_tag();
         let write_text_fn = Self::write_text_fn(context);
+        let read_text_fn = Self::read_text_fn(context);
 
         ObjectInitializer::new(context)
             .property("writeText", write_text_fn, attribute)
+            .property("readText", read_text_fn, attribute)
             .property(to_string_tag, Self::NAME, attribute)
             .build()
             .conv::<JsValue>()
@@ -58,7 +62,7 @@ impl Clipboard {
             let opts = Options::new();
             let res = opts.copy(
                 Source::Bytes(data.to_string().into_bytes().into()),
-                MimeType::Autodetect,
+                copy::MimeType::Autodetect,
             );
 
             match res {
@@ -78,7 +82,53 @@ impl Clipboard {
                 }
             }
         })
-        .name("write")
+        .name("writeText")
+        .build()
+    }
+
+    fn read_text_fn(context: &mut Context) -> JsFunction {
+        FunctionBuilder::native(context, |_this, _, context| {
+            let p = context.intrinsics().constructors().promise().constructor();
+            let res = get_contents(
+                ClipboardType::Regular,
+                Seat::Unspecified,
+                paste::MimeType::Text,
+            );
+
+            let mut temp_str = String::new();
+            match res {
+                Ok((mut pipe, _)) => {
+                    let mut contents = vec![];
+                    let res = pipe.read_to_end(&mut contents);
+                    match res {
+                        Ok(_) => {
+                            temp_str = String::from_utf8_lossy(&contents).to_string();
+                            let clip_value = JsValue::from(JsString::new(temp_str.as_str()));
+                            Promise::resolve(&p.conv::<JsValue>(), &[clip_value], context)
+                        }
+                        Err(_) => {
+                            let err_reason = JsValue::from(JsString::new("Unable to read"));
+                            Promise::reject(&p.conv::<JsValue>(), &[err_reason], context)
+                        }
+                    }
+                }
+                Err(err1) => {
+                    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+                    match ctx.get_contents() {
+                        Ok(val) => {
+                            let clip_value = JsValue::from(JsString::new(val.as_str()));
+                            Promise::resolve(&p.conv::<JsValue>(), &[clip_value], context)
+                        }
+                        Err(err2) => {
+                            println!("{}, {}", err1, err2);
+                            let err_reason = JsValue::from(JsString::new("Unable to read"));
+                            Promise::reject(&p.conv::<JsValue>(), &[err_reason], context)
+                        }
+                    }
+                }
+            }
+        })
+        .name("readText")
         .build()
     }
 }

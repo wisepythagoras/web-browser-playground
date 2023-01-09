@@ -18,5 +18,11 @@ console.log(console.warn.toString());
 
 clipboard.writeText().catch((err) => console.error(err));
 clipboard.writeText('Lorem ipsum dolor sit amet, consectetur adipiscing elit')
-    .then(() => console.log('Copied'))
+    .then(() => {
+        console.log('Copied');
+        
+        clipboard.readText().then((data) => {
+            console.log(`Clipboard data: ${data}`);
+        });
+    })
     .catch((e) => console.error(e));
