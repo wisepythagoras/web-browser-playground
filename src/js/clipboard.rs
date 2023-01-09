@@ -10,7 +10,7 @@ use clipboard::ClipboardContext;
 use clipboard::ClipboardProvider;
 use std::io::Read;
 use wl_clipboard_rs::copy::{self, Options, Source};
-use wl_clipboard_rs::paste::{self, get_contents, ClipboardType, Error, Seat};
+use wl_clipboard_rs::paste::{self, get_contents, ClipboardType, Seat};
 
 use tap::{Conv, Pipe};
 
