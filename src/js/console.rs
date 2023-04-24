@@ -32,7 +32,7 @@ impl Console {
     }
 
     fn create_log_fn(context: &mut Context, name: &str) -> JsFunction {
-        FunctionBuilder::native(context, |_this, args, context| {
+        FunctionBuilder::native(context, |_this, args, _| {
             let mut i = 0;
 
             while i < args.len() {

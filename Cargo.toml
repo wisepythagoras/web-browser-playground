@@ -15,4 +15,5 @@ num_cpus = "1.14.0"
 clipboard = "0.5.0"
 wl-clipboard-rs = "0.7.0"
 scraper = "0.14.0"
+json = "0.12.4"
 # mozjs = { git = "https://github.com/servo/mozjs", version = "0.14.1"}

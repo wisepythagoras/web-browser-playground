@@ -10,6 +10,7 @@ use boa_engine::{
     Context, JsResult, JsString, JsValue,
 };
 use js::{clipboard::Clipboard, console::Console, navigator::Navigator};
+use scraper::{Html, Selector};
 use std::{env, fs, process};
 
 fn myfunction(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
@@ -40,6 +41,11 @@ fn main() {
     if args.len() == 0 {
         println!("A script is needed");
         process::exit(1);
+    }
+
+    if args[0] == "--html" {
+        parse_html();
+        return;
     }
 
     let file_data = match fs::read_to_string(args[0].clone()) {
@@ -121,6 +127,39 @@ fn create_myfn(context: &mut Context) -> boa_engine::object::JsFunction {
     );
 
     return function;
+}
+
+fn parse_html() {
+    let html = r#"
+        <!doctype html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8">
+                <title>Html parser</title>
+            </head>
+            <body>
+                <h1 id="a" class="b c">Hello world</h1>
+                </h1> <!-- comments & dangling elements are ignored -->
+                <script src="./index.js"></script>
+                <script>console.log("Hello, world!");</script>
+            </body>
+        </html>"#;
+
+    let document = Html::parse_document(html);
+    let selector = Selector::parse("script").unwrap();
+
+    for el in document.select(&selector) {
+        let attr = el.value().attr("src");
+
+        if attr.is_none() {
+            let inner = el.inner_html();
+            println!("Found script: {}", inner);
+            continue;
+        }
+
+        let src = attr.unwrap();
+        println!("Found script with src: {}", src);
+    }
 }
 
 fn tests() {

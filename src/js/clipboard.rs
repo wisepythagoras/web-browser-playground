@@ -95,7 +95,7 @@ impl Clipboard {
                 paste::MimeType::Text,
             );
 
-            let mut temp_str = String::new();
+            let temp_str;
             match res {
                 Ok((mut pipe, _)) => {
                     let mut contents = vec![];
