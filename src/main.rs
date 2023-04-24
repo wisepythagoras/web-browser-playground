@@ -3,12 +3,17 @@ mod js {
     pub mod console;
     pub mod navigator;
 }
+mod html {
+    pub mod document;
+    pub mod script;
+}
 
 use boa_engine::{
     object::{FunctionBuilder, ObjectInitializer},
     property::Attribute,
     Context, JsResult, JsString, JsValue,
 };
+use html::document;
 use js::{clipboard::Clipboard, console::Console, navigator::Navigator};
 use scraper::{Html, Selector};
 use std::{env, fs, process};
@@ -145,20 +150,14 @@ fn parse_html() {
             </body>
         </html>"#;
 
-    let document = Html::parse_document(html);
-    let selector = Selector::parse("script").unwrap();
+    let doc = document::Document::init(html);
 
-    for el in document.select(&selector) {
-        let attr = el.value().attr("src");
-
-        if attr.is_none() {
-            let inner = el.inner_html();
-            println!("Found script: {}", inner);
-            continue;
+    for scr in doc.scripts {
+        if scr.src != "" {
+            println!("{}", scr.src);
+        } else {
+            println!("{}", scr.source);
         }
-
-        let src = attr.unwrap();
-        println!("Found script with src: {}", src);
     }
 }
 
