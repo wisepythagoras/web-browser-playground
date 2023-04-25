@@ -48,18 +48,19 @@ fn main() {
         process::exit(1);
     }
 
-    if args[0] == "--html" {
-        parse_html();
-        return;
-    }
+    let js_data;
 
-    let file_data = match fs::read_to_string(args[0].clone()) {
-        Ok(data) => data,
-        Err(err) => {
-            println!("Error {}", err.kind().to_string());
-            process::exit(1);
-        }
-    };
+    if args[0] == "--html" {
+        js_data = parse_html();
+    } else {
+        js_data = match fs::read_to_string(args[0].clone()) {
+            Ok(data) => data,
+            Err(err) => {
+                println!("Error {}", err.kind().to_string());
+                process::exit(1);
+            }
+        };
+    }
 
     let mut context = Context::default();
     let navigator = Navigator::init(&mut context);
@@ -93,7 +94,7 @@ fn main() {
 
     context.register_global_builtin_function("myfn", 1, myfunction);
 
-    let res = context.eval(file_data);
+    let res = context.eval(js_data);
 
     match res {
         Ok(_) => println!("Script was run"),
@@ -134,7 +135,7 @@ fn create_myfn(context: &mut Context) -> boa_engine::object::JsFunction {
     return function;
 }
 
-fn parse_html() {
+fn parse_html() -> String {
     let html = r#"
         <!doctype html>
         <html lang="en">
@@ -146,19 +147,28 @@ fn parse_html() {
                 <h1 id="a" class="b c">Hello world</h1>
                 </h1> <!-- comments & dangling elements are ignored -->
                 <script src="./index.js"></script>
-                <script>console.log("Hello, world!");</script>
+                <script>console.log("Hello, inline JS!");</script>
             </body>
         </html>"#;
 
     let doc = document::Document::init(html);
+    let mut js_data = String::new();
 
     for scr in doc.scripts {
         if scr.src != "" {
-            println!("{}", scr.src);
+            js_data = match fs::read_to_string(scr.src) {
+                Ok(data) => data,
+                Err(err) => {
+                    println!("Error {}", err.kind().to_string());
+                    String::new()
+                }
+            };
         } else {
-            println!("{}", scr.source);
+            js_data += scr.source.as_str()
         }
     }
+
+    return js_data;
 }
 
 fn tests() {
