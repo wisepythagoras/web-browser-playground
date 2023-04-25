@@ -15,7 +15,6 @@ use boa_engine::{
 };
 use html::document;
 use js::{clipboard::Clipboard, console::Console, navigator::Navigator};
-use scraper::{Html, Selector};
 use std::{env, fs, process};
 
 fn myfunction(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
