@@ -39,7 +39,7 @@ fn myfunction(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<
         .pow(&JsValue::new(2), context)
 }
 
-fn init_browser(context: &mut Context) {
+fn init_browser(context: &mut Context, doc: Option<document::Document>) {
     let navigator = Navigator::init(context);
 
     match navigator {
@@ -75,17 +75,23 @@ fn init_browser(context: &mut Context) {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
 
-    if args.len() == 0 {
-        println!("A script is needed");
+    if args.len() < 2 {
+        println!("Usage:\n./web-browser --html file.html");
+        println!("./web-browser --js file.js");
         process::exit(1);
     }
 
     let js_data;
+    let filepath = args[1].clone();
+    let mut html_doc: Option<document::Document> = None;
 
     if args[0] == "--html" {
-        js_data = parse_html();
+        let mut doc = parse_html(filepath.as_str());
+        html_doc = Some(doc.clone());
+        js_data = doc.get_js_source();
+        doc.traverse();
     } else {
-        js_data = match fs::read_to_string(args[0].clone()) {
+        js_data = match fs::read_to_string(filepath) {
             Ok(data) => data,
             Err(err) => {
                 println!("Error {}", err.kind().to_string());
@@ -95,7 +101,7 @@ fn main() {
     }
 
     let mut context = Context::default();
-    init_browser(&mut context);
+    init_browser(&mut context, html_doc);
 
     let res = context.eval(js_data);
 
@@ -138,40 +144,16 @@ fn create_myfn(context: &mut Context) -> boa_engine::object::JsFunction {
     return function;
 }
 
-fn parse_html() -> String {
-    let html = r#"
-        <!doctype html>
-        <html lang="en">
-            <head>
-                <meta charset="utf-8">
-                <title>Html parser</title>
-            </head>
-            <body>
-                <h1 id="a" class="b c">Hello world</h1>
-                </h1> <!-- comments & dangling elements are ignored -->
-                <script src="./index.js"></script>
-                <script>console.log("Hello, inline JS!");</script>
-            </body>
-        </html>"#;
-
-    let doc = document::Document::init(html);
-    let mut js_data = String::new();
-
-    for scr in doc.scripts {
-        if scr.src != "" {
-            js_data = match fs::read_to_string(scr.src) {
-                Ok(data) => data,
-                Err(err) => {
-                    println!("Error {}", err.kind().to_string());
-                    String::new()
-                }
-            };
-        } else {
-            js_data += scr.source.as_str()
+fn parse_html(filepath: &str) -> document::Document {
+    let html = match fs::read_to_string(filepath) {
+        Ok(data) => data,
+        Err(err) => {
+            println!("Error {}", err.kind().to_string());
+            process::exit(1);
         }
-    }
+    };
 
-    return js_data;
+    return document::Document::new(html);
 }
 
 fn tests() {
