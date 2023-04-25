@@ -16,7 +16,7 @@ console.error(JSON.stringify(navigator.languages), host);
 console.warn(function() {});
 console.log(console.warn.toString());
 
-clipboard.writeText().catch((err) => console.error(err));
+clipboard.writeText().catch((err) => console.error('Expected fail:', err));
 clipboard.writeText('Lorem ipsum dolor sit amet, consectetur adipiscing elit')
     .then(() => {
         console.log('Copied');

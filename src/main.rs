@@ -39,6 +39,39 @@ fn myfunction(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<
         .pow(&JsValue::new(2), context)
 }
 
+fn init_browser(context: &mut Context) {
+    let navigator = Navigator::init(context);
+
+    match navigator {
+        Some(val) => {
+            context.register_global_property("navigator", val, Attribute::READONLY);
+        }
+        None => println!("Error assigning navigator"),
+    };
+
+    let console = Console::init(context);
+
+    match console {
+        Some(val) => {
+            context.register_global_property("console", val, Attribute::READONLY);
+        }
+        None => println!("Error assigning console"),
+    };
+
+    let clipboard = Clipboard::init(context);
+
+    match clipboard {
+        Some(val) => {
+            context.register_global_property("clipboard", val, Attribute::READONLY);
+        }
+        None => println!("Error assigning clipboard"),
+    };
+
+    create_myfn(context);
+
+    context.register_global_builtin_function("myfn", 1, myfunction);
+}
+
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
 
@@ -62,36 +95,7 @@ fn main() {
     }
 
     let mut context = Context::default();
-    let navigator = Navigator::init(&mut context);
-
-    match navigator {
-        Some(val) => {
-            context.register_global_property("navigator", val, Attribute::READONLY);
-        }
-        None => println!("Error assigning navigator"),
-    };
-
-    let console = Console::init(&mut context);
-
-    match console {
-        Some(val) => {
-            context.register_global_property("console", val, Attribute::READONLY);
-        }
-        None => println!("Error assigning console"),
-    };
-
-    let clipboard = Clipboard::init(&mut context);
-
-    match clipboard {
-        Some(val) => {
-            context.register_global_property("clipboard", val, Attribute::READONLY);
-        }
-        None => println!("Error assigning clipboard"),
-    };
-
-    create_myfn(&mut context);
-
-    context.register_global_builtin_function("myfn", 1, myfunction);
+    init_browser(&mut context);
 
     let res = context.eval(js_data);
 
