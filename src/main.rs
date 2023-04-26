@@ -2,6 +2,7 @@ mod js {
     pub mod clipboard;
     pub mod console;
     pub mod navigator;
+    pub mod node;
 }
 mod html {
     pub mod document;
@@ -14,7 +15,7 @@ use boa_engine::{
     Context, JsResult, JsString, JsValue,
 };
 use html::document;
-use js::{clipboard::Clipboard, console::Console, navigator::Navigator};
+use js::{clipboard::Clipboard, console::Console, navigator::Navigator, node::Node};
 use std::{env, fs, process};
 
 fn myfunction(_: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
@@ -65,6 +66,13 @@ fn init_browser(context: &mut Context, doc: Option<document::Document>) {
             context.register_global_property("clipboard", val, Attribute::READONLY);
         }
         None => println!("Error assigning clipboard"),
+    };
+
+    match doc {
+        Some(document) => {
+            let document_node = Node::init(context, &mut document.clone());
+        }
+        None => {}
     };
 
     create_myfn(context);

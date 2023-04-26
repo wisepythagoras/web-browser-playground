@@ -44,6 +44,13 @@ impl Document {
         };
     }
 
+    pub(crate) fn get_element_by_id(&mut self, id: String) -> Option<ElementRef> {
+        let selector = Selector::parse(id.as_str()).unwrap();
+        let mut it = self.document.select(&selector);
+
+        it.next()
+    }
+
     /**
      * This function returns a string that contains all of the JavaScript code.
      */
