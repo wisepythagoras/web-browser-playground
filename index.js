@@ -20,7 +20,6 @@ console.log(console.warn.toString());
 // clipboard.writeText('Lorem ipsum dolor sit amet, consectetur adipiscing elit')
 //     .then(() => {
 //         console.log('Copied');
-        
 //         clipboard.readText().then((data) => {
 //             console.log(`Clipboard data: ${data}`);
 //         });

@@ -1,10 +1,12 @@
 use boa_engine::{
-    builtins::promise::Promise,
-    object::ObjectInitializer,
+    js_string,
+    // builtins::promise::Promise,
+    object::{builtins::JsPromise, ObjectInitializer},
     property::Attribute,
     // symbol::WellKnownSymbols,
     value::JsValue,
     Context,
+    JsError,
     JsString,
 };
 use boa_engine::{JsResult, NativeFunction};
@@ -41,98 +43,117 @@ impl Clipboard {
             .pipe(Some)
     }
 
-    fn write_text_fn(context: &mut Context) -> NativeFunction {
-        let func = |_this: &JsValue, args: &[JsValue], _: &mut Context| -> JsResult<JsValue> {
-            Ok(JsValue::undefined())
-            // let p = context.intrinsics().constructors().promise().constructor();
+    fn promise_to_js_value(incomplete_promise: JsResult<JsPromise>) -> JsValue {
+        match incomplete_promise {
+            Ok(p) => match JsValue::try_from(p) {
+                Ok(v) => v,
+                Err(_) => JsValue::undefined(),
+            },
+            Err(_) => JsValue::undefined(),
+        }
+    }
 
-            // if args.len() < 1 {
-            //     return Promise::reject(
-            //         &p.conv::<JsValue>(),
-            //         &[JsValue::from(JsString::from("No data to copy"))],
-            //         context,
-            //     );
-            // }
+    fn write_text_fn(ctx: &mut Context) -> NativeFunction {
+        let func =
+            |_this: &JsValue, args: &[JsValue], context: &mut Context| -> JsResult<JsValue> {
+                // let p = context.intrinsics().constructors().promise().constructor();
 
-            // let arg = args.get(0);
+                if args.len() < 1 {
+                    let p = Self::promise_to_js_value(JsPromise::reject(
+                        JsError::from_opaque(JsValue::from("No data to copy")),
+                        context,
+                    ));
+                    return Ok(p);
+                }
 
-            // let data = match arg {
-            //     Some(data) => match data.as_string() {
-            //         Some(v) => v,
-            //         None => "",
-            //     },
-            //     None => "",
-            // };
+                let arg = args.get(0);
 
-            // let opts = Options::new();
-            // let res = opts.copy(
-            //     Source::Bytes(data.to_string().into_bytes().into()),
-            //     copy::MimeType::Autodetect,
-            // );
+                let temp = JsString::from("");
+                let data = match arg {
+                    Some(data) => match data.as_string() {
+                        Some(v) => v,
+                        None => &temp,
+                    },
+                    None => &temp,
+                };
 
-            // match res {
-            //     Ok(_) => Promise::resolve(&p.conv::<JsValue>(), &[JsValue::Undefined], context),
-            //     Err(err1) => {
-            //         let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-            //         match ctx.set_contents(data.to_owned()) {
-            //             Ok(_) => {
-            //                 Promise::resolve(&p.conv::<JsValue>(), &[JsValue::Undefined], context)
-            //             }
-            //             Err(err2) => {
-            //                 println!("{}, {}", err1, err2);
-            //                 let err_reason = JsValue::from(JsString::new("Unable to copy"));
-            //                 Promise::reject(&p.conv::<JsValue>(), &[err_reason], context)
-            //             }
-            //         }
-            //     }
-            // }
-        };
+                let opts = Options::new();
+                let res = opts.copy(
+                    Source::Bytes(data.to_std_string_escaped().into_bytes().into()),
+                    copy::MimeType::Autodetect,
+                );
+
+                let res = match res {
+                    Ok(_) => JsPromise::resolve(JsValue::Undefined, context),
+                    Err(err1) => {
+                        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+                        match ctx.set_contents(data.to_std_string_escaped().to_owned()) {
+                            Ok(_) => JsPromise::resolve(JsValue::Undefined, context),
+                            Err(err2) => {
+                                println!("{}, {}", err1, err2);
+                                let err_reason = JsValue::from(JsString::from("Unable to copy"));
+                                JsPromise::reject(JsError::from_opaque(err_reason), context)
+                            }
+                        }
+                    }
+                };
+
+                Ok(Self::promise_to_js_value(res))
+            };
 
         NativeFunction::from_fn_ptr(func)
     }
 
     fn read_text_fn(context: &mut Context) -> NativeFunction {
-        let func = |_this: &JsValue, args: &[JsValue], _: &mut Context| -> JsResult<JsValue> {
-            Ok(JsValue::undefined())
-            // let p = context.intrinsics().constructors().promise().constructor();
-            // let res = get_contents(
-            //     ClipboardType::Regular,
-            //     Seat::Unspecified,
-            //     paste::MimeType::Text,
-            // );
+        let func = |_this: &JsValue, _: &[JsValue], context: &mut Context| -> JsResult<JsValue> {
+            let res = get_contents(
+                ClipboardType::Regular,
+                Seat::Unspecified,
+                paste::MimeType::Text,
+            );
 
-            // let temp_str;
-            // match res {
-            //     Ok((mut pipe, _)) => {
-            //         let mut contents = vec![];
-            //         let res = pipe.read_to_end(&mut contents);
-            //         match res {
-            //             Ok(_) => {
-            //                 temp_str = String::from_utf8_lossy(&contents).to_string();
-            //                 let clip_value = JsValue::from(JsString::new(temp_str.as_str()));
-            //                 Promise::resolve(&p.conv::<JsValue>(), &[clip_value], context)
-            //             }
-            //             Err(_) => {
-            //                 let err_reason = JsValue::from(JsString::new("Unable to read"));
-            //                 Promise::reject(&p.conv::<JsValue>(), &[err_reason], context)
-            //             }
-            //         }
-            //     }
-            //     Err(err1) => {
-            //         let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-            //         match ctx.get_contents() {
-            //             Ok(val) => {
-            //                 let clip_value = JsValue::from(JsString::new(val.as_str()));
-            //                 Promise::resolve(&p.conv::<JsValue>(), &[clip_value], context)
-            //             }
-            //             Err(err2) => {
-            //                 println!("{}, {}", err1, err2);
-            //                 let err_reason = JsValue::from(JsString::new("Unable to read"));
-            //                 Promise::reject(&p.conv::<JsValue>(), &[err_reason], context)
-            //             }
-            //         }
-            //     }
-            // }
+            let temp_str;
+            match res {
+                Ok((mut pipe, _)) => {
+                    let mut contents = vec![];
+                    let res = pipe.read_to_end(&mut contents);
+                    match res {
+                        Ok(_) => {
+                            temp_str = String::from_utf8_lossy(&contents).to_string();
+                            let clip_value = JsValue::from(JsString::from(temp_str.as_str()));
+                            Ok(Self::promise_to_js_value(JsPromise::resolve(
+                                clip_value, context,
+                            )))
+                        }
+                        Err(_) => {
+                            let err_reason = JsValue::from(JsString::from("Unable to read"));
+                            Ok(Self::promise_to_js_value(JsPromise::reject(
+                                JsError::from_opaque(err_reason),
+                                context,
+                            )))
+                        }
+                    }
+                }
+                Err(err1) => {
+                    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+                    match ctx.get_contents() {
+                        Ok(val) => {
+                            let clip_value = JsValue::from(JsString::from(val.as_str()));
+                            Ok(Self::promise_to_js_value(JsPromise::resolve(
+                                clip_value, context,
+                            )))
+                        }
+                        Err(err2) => {
+                            println!("{}, {}", err1, err2);
+                            let err_reason = JsValue::from(JsString::from("Unable to read"));
+                            Ok(Self::promise_to_js_value(JsPromise::reject(
+                                JsError::from_opaque(err_reason),
+                                context,
+                            )))
+                        }
+                    }
+                }
+            }
         };
 
         NativeFunction::from_fn_ptr(func)

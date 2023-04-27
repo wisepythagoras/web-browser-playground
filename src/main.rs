@@ -31,18 +31,14 @@ fn test2(
 
     async move {
         std::future::ready(()).await;
-        // drop(arg);
-        // Ok(JsValue::null())
 
         match res {
             Ok(v) => {
-                println!("Ok ok");
+                println!("Res: {:?}", v);
                 return Ok(v);
             }
             Err(_) => Ok(JsValue::undefined()),
         }
-
-        // Ok(JsValue::null())
     }
 }
 
@@ -51,7 +47,7 @@ fn init_browser(context: &mut Context, doc: Option<document::Document>) {
         .register_global_builtin_callable("myfn", 0, NativeFunction::from_fn_ptr(test))
         .expect("Registers");
     context
-        .register_global_builtin_callable("myfn2", 0, NativeFunction::from_async_fn(test2))
+        .register_global_builtin_callable("myfn2", 1, NativeFunction::from_async_fn(test2))
         .expect("Registers");
 
     let navigator = Navigator::init(context);
@@ -127,6 +123,7 @@ fn main() {
     init_browser(&mut context, html_doc);
 
     let res = context.eval_script(Source::from_bytes(js_data.as_str()));
+    context.run_jobs();
 
     match res {
         Ok(_) => println!("Script was run"),
