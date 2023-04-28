@@ -83,12 +83,21 @@ fn init_browser(context: &mut Context, doc: Option<document::Document>) {
         None => println!("Error assigning clipboard"),
     };
 
-    // match doc {
-    //     Some(document) => {
-    //         let document_node = Node::init(context, &mut document.clone());
-    //     }
-    //     None => {}
-    // };
+    match doc {
+        Some(document) => {
+            let document_node = Node::init(context, document.clone());
+
+            match document_node {
+                Some(val) => {
+                    context
+                        .register_global_property("document", val, Attribute::READONLY)
+                        .expect("Registers");
+                }
+                None => println!("Error assigning document"),
+            }
+        }
+        None => println!("Misc problem with the document"),
+    };
 }
 
 fn main() {

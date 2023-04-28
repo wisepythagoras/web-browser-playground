@@ -5,7 +5,7 @@ use std::fs;
 
 #[derive(Clone, PartialEq, Eq)]
 pub(crate) struct Document {
-    contents: String,
+    pub contents: String,
     document: Html,
     pub scripts: Vec<Script>,
 }
