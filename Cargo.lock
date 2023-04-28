@@ -1883,6 +1883,7 @@ dependencies = [
  "clipboard",
  "gc",
  "json",
+ "libc",
  "num_cpus",
  "scraper",
  "sys-locale",

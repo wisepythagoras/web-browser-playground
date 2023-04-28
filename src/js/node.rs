@@ -1,19 +1,21 @@
-use std::cell::RefCell;
+extern crate libc;
 
 use crate::html::document::Document;
 use boa_engine::{
-    builtins::function::Function,
-    object::{builtins::JsFunction, FunctionObjectBuilder, ObjectInitializer},
+    object::ObjectInitializer,
     property::Attribute,
     // symbol::WellKnownSymbols,
     value::JsValue,
     Context,
+    JsError,
+    JsNativeError,
     JsResult,
+    JsString,
     NativeFunction,
 };
+use std::mem;
 
-use boa_gc::{Finalize, GcRefCell, Trace};
-use scraper::Html;
+use boa_gc::{Finalize, Trace};
 use tap::{Conv, Pipe};
 
 // #[derive(Clone, PartialEq, Eq)]
@@ -27,79 +29,64 @@ pub(crate) struct Node;
 impl Node {
     const NAME: &'static str = "Node";
 
-    pub(crate) fn init(context: &mut Context, doc: Document) -> Option<JsValue> {
+    pub(crate) fn init(context: &mut Context, doc: &Document) -> Option<JsValue> {
         let attribute = Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::PERMANENT;
         // let to_string_tag = WellKnownSymbols::to_string_tag();
-        let get_id = Self::get_element_by_id_fn(context, doc);
 
-        ObjectInitializer::new(context)
-            // .property(to_string_tag, Self::NAME, attribute)
-            .function(get_id, "getElementById", 1)
-            .build()
-            .conv::<JsValue>()
-            .pipe(Some)
+        unsafe {
+            let doc_raw_ptr: *mut Document =
+                libc::malloc(mem::size_of::<Document>()) as *mut Document;
+            *doc_raw_ptr = doc.clone();
+            let get_id = Self::get_element_by_id_fn(context, doc_raw_ptr);
+
+            ObjectInitializer::new(context)
+                // .property(to_string_tag, Self::NAME, attribute)
+                .function(get_id, "getElementById", 1)
+                .build()
+                .conv::<JsValue>()
+                .pipe(Some)
+        }
     }
 
-    fn get_element_by_id_fn(context: &mut Context, doc: Document) -> NativeFunction {
-        /*
-        let d = RefCell::new(doc);
-        // let a = &doc;
-        // let d = RefCell::new(m_test);
-        // Closures can only be coersed to fn types if the do not capture any variables
-        // fn b(_this: &JsValue, args: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
-        let b = move |_this: &JsValue, args: &[JsValue], _: &mut Context| -> JsResult<JsValue> {
-            if args.len() < 1 {
-                // let cause = JsError::from_opaque("error!".into());
-                return Ok(JsValue::Undefined);
-            }
-
-            // match d.borrow_mut().get_element_by_id(String::from("")) {
-            //     Some(a) => {}
-            //     None => {}
-            // };
-            // test();
-            Ok(JsValue::Undefined)
-        };
-
-        NativeFunction::from_copy_closure(b)
-        */
-
+    fn get_element_by_id_fn(_: &mut Context, doc: *mut Document) -> NativeFunction {
         #[derive(Debug, Clone, Trace, Finalize)]
         struct TempDoc {
             pub contents: String,
         }
 
-        let shit = TempDoc {
-            contents: doc.contents,
-        };
+        unsafe {
+            let get_closure =
+                move |_this: &JsValue, args: &[JsValue], _: &mut Context| -> JsResult<JsValue> {
+                    if args.len() < 1 {
+                        let error_str =
+                        "Document.getElementById: At least 1 argument required, but only 0 passed";
+                        let error: JsError = JsNativeError::typ().with_message(error_str).into();
+                        return Err(error);
+                    }
 
-        NativeFunction::from_copy_closure_with_captures(
-            |_, _, captures, context| {
-                let mut captures = captures.borrow_mut();
-                let TempDoc { contents } = &mut *captures;
-                println!("{}", contents);
-                // We obtain the `name` property of `captures.object`
-                // let name = object.get("name", context)?;
+                    let arg = args.get(0);
+                    let temp = JsString::from("");
+                    let query_id = match arg {
+                        Some(data) => match data.as_string() {
+                            Some(v) => v,
+                            None => &temp,
+                        },
+                        None => &temp,
+                    };
 
-                // // We create a new message from our captured variable.
-                // let message = js_string!(
-                //     utf16!("message from `"),
-                //     &name.to_string(context)?,
-                //     utf16!("`: "),
-                //     greeting
-                // );
+                    match (*doc).get_element_by_id(query_id.to_std_string().unwrap()) {
+                        Some(a) => {
+                            println!("{:?}", a.value().classes);
+                        }
+                        None => {
+                            println!("Not found");
+                        }
+                    };
 
-                // We can also mutate the moved data inside the closure.
-                // captures.greeting = js_string!(greeting, utf16!(" Hello!"));
+                    Ok(JsValue::Undefined)
+                };
 
-                // println!("{}", message.to_std_string_escaped());
-                // println!();
-
-                // We convert `message` into `JsValue` to be able to return it.
-                Ok(JsValue::Null)
-            },
-            // Here is where we move `clone_variable` into the closure.
-            GcRefCell::new(shit),
-        )
+            NativeFunction::from_copy_closure(get_closure)
+        }
     }
 }

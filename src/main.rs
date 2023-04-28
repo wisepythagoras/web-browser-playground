@@ -85,7 +85,7 @@ fn init_browser(context: &mut Context, doc: Option<document::Document>) {
 
     match doc {
         Some(document) => {
-            let document_node = Node::init(context, document.clone());
+            let document_node = Node::init(context, &mut document.clone());
 
             match document_node {
                 Some(val) => {
@@ -151,5 +151,5 @@ fn parse_html(filepath: &str) -> document::Document {
         }
     };
 
-    return document::Document::new(html);
+    document::Document::new(html)
 }
