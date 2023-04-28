@@ -1,11 +1,15 @@
 use boa_engine::{
-    builtins::promise::Promise,
-    object::{FunctionBuilder, JsFunction, ObjectInitializer},
+    js_string,
+    // builtins::promise::Promise,
+    object::{builtins::JsPromise, ObjectInitializer},
     property::Attribute,
-    symbol::WellKnownSymbols,
+    // symbol::WellKnownSymbols,
     value::JsValue,
-    Context, JsString,
+    Context,
+    JsError,
+    JsString,
 };
+use boa_engine::{JsResult, NativeFunction};
 use clipboard::ClipboardContext;
 use clipboard::ClipboardProvider;
 use std::io::Read;
@@ -24,71 +28,84 @@ impl Clipboard {
 
     pub(crate) fn init(context: &mut Context) -> Option<JsValue> {
         let attribute = Attribute::READONLY | Attribute::NON_ENUMERABLE | Attribute::PERMANENT;
-        let to_string_tag = WellKnownSymbols::to_string_tag();
+        // let to_string_tag = WellKnownSymbols::to_string_tag();
         let write_text_fn = Self::write_text_fn(context);
         let read_text_fn = Self::read_text_fn(context);
 
         ObjectInitializer::new(context)
-            .property("writeText", write_text_fn, attribute)
-            .property("readText", read_text_fn, attribute)
-            .property(to_string_tag, Self::NAME, attribute)
+            // .property("writeText", write_text_fn, attribute)
+            // .property("readText", read_text_fn, attribute)
+            // .property(to_string_tag, Self::NAME, attribute)
+            .function(write_text_fn, "writeText", 1)
+            .function(read_text_fn, "readText", 1)
             .build()
             .conv::<JsValue>()
             .pipe(Some)
     }
 
-    fn write_text_fn(context: &mut Context) -> JsFunction {
-        FunctionBuilder::native(context, |_this, args, context| {
-            let p = context.intrinsics().constructors().promise().constructor();
-
-            if args.len() < 1 {
-                return Promise::reject(
-                    &p.conv::<JsValue>(),
-                    &[JsValue::from(JsString::new("No data to copy"))],
-                    context,
-                );
-            }
-
-            let arg = args.get(0);
-
-            let data = match arg {
-                Some(data) => match data.as_string() {
-                    Some(v) => v,
-                    None => "",
-                },
-                None => "",
-            };
-
-            let opts = Options::new();
-            let res = opts.copy(
-                Source::Bytes(data.to_string().into_bytes().into()),
-                copy::MimeType::Autodetect,
-            );
-
-            match res {
-                Ok(_) => Promise::resolve(&p.conv::<JsValue>(), &[JsValue::Undefined], context),
-                Err(err1) => {
-                    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-                    match ctx.set_contents(data.to_owned()) {
-                        Ok(_) => {
-                            Promise::resolve(&p.conv::<JsValue>(), &[JsValue::Undefined], context)
-                        }
-                        Err(err2) => {
-                            println!("{}, {}", err1, err2);
-                            let err_reason = JsValue::from(JsString::new("Unable to copy"));
-                            Promise::reject(&p.conv::<JsValue>(), &[err_reason], context)
-                        }
-                    }
-                }
-            }
-        })
-        .name("writeText")
-        .build()
+    fn promise_to_js_value(incomplete_promise: JsResult<JsPromise>) -> JsValue {
+        match incomplete_promise {
+            Ok(p) => match JsValue::try_from(p) {
+                Ok(v) => v,
+                Err(_) => JsValue::undefined(),
+            },
+            Err(_) => JsValue::undefined(),
+        }
     }
 
-    fn read_text_fn(context: &mut Context) -> JsFunction {
-        FunctionBuilder::native(context, |_this, _, context| {
-            let p = context.intrinsics().constructors().promise().constructor();
+    fn write_text_fn(ctx: &mut Context) -> NativeFunction {
+        let func =
+            |_this: &JsValue, args: &[JsValue], context: &mut Context| -> JsResult<JsValue> {
+                // let p = context.intrinsics().constructors().promise().constructor();
+
+                if args.len() < 1 {
+                    let p = Self::promise_to_js_value(JsPromise::reject(
+                        JsError::from_opaque(JsValue::from("No data to copy")),
+                        context,
+                    ));
+                    return Ok(p);
+                }
+
+                let arg = args.get(0);
+
+                let temp = JsString::from("");
+                let data = match arg {
+                    Some(data) => match data.as_string() {
+                        Some(v) => v,
+                        None => &temp,
+                    },
+                    None => &temp,
+                };
+
+                let opts = Options::new();
+                let res = opts.copy(
+                    Source::Bytes(data.to_std_string_escaped().into_bytes().into()),
+                    copy::MimeType::Autodetect,
+                );
+
+                let res = match res {
+                    Ok(_) => JsPromise::resolve(JsValue::Undefined, context),
+                    Err(err1) => {
+                        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+                        match ctx.set_contents(data.to_std_string_escaped().to_owned()) {
+                            Ok(_) => JsPromise::resolve(JsValue::Undefined, context),
+                            Err(err2) => {
+                                println!("{}, {}", err1, err2);
+                                let err_reason = JsValue::from(JsString::from("Unable to copy"));
+                                JsPromise::reject(JsError::from_opaque(err_reason), context)
+                            }
+                        }
+                    }
+                };
+
+                Ok(Self::promise_to_js_value(res))
+            };
+
+        NativeFunction::from_fn_ptr(func)
+    }
+
+    fn read_text_fn(context: &mut Context) -> NativeFunction {
+        let func = |_this: &JsValue, _: &[JsValue], context: &mut Context| -> JsResult<JsValue> {
             let res = get_contents(
                 ClipboardType::Regular,
                 Seat::Unspecified,
@@ -103,12 +120,17 @@ impl Clipboard {
                     match res {
                         Ok(_) => {
                             temp_str = String::from_utf8_lossy(&contents).to_string();
-                            let clip_value = JsValue::from(JsString::new(temp_str.as_str()));
-                            Promise::resolve(&p.conv::<JsValue>(), &[clip_value], context)
+                            let clip_value = JsValue::from(JsString::from(temp_str.as_str()));
+                            Ok(Self::promise_to_js_value(JsPromise::resolve(
+                                clip_value, context,
+                            )))
                         }
                         Err(_) => {
-                            let err_reason = JsValue::from(JsString::new("Unable to read"));
-                            Promise::reject(&p.conv::<JsValue>(), &[err_reason], context)
+                            let err_reason = JsValue::from(JsString::from("Unable to read"));
+                            Ok(Self::promise_to_js_value(JsPromise::reject(
+                                JsError::from_opaque(err_reason),
+                                context,
+                            )))
                         }
                     }
                 }
@@ -116,19 +138,24 @@ impl Clipboard {
                     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
                     match ctx.get_contents() {
                         Ok(val) => {
-                            let clip_value = JsValue::from(JsString::new(val.as_str()));
-                            Promise::resolve(&p.conv::<JsValue>(), &[clip_value], context)
+                            let clip_value = JsValue::from(JsString::from(val.as_str()));
+                            Ok(Self::promise_to_js_value(JsPromise::resolve(
+                                clip_value, context,
+                            )))
                         }
                         Err(err2) => {
                             println!("{}, {}", err1, err2);
-                            let err_reason = JsValue::from(JsString::new("Unable to read"));
-                            Promise::reject(&p.conv::<JsValue>(), &[err_reason], context)
+                            let err_reason = JsValue::from(JsString::from("Unable to read"));
+                            Ok(Self::promise_to_js_value(JsPromise::reject(
+                                JsError::from_opaque(err_reason),
+                                context,
+                            )))
                         }
                     }
                 }
             }
-        })
-        .name("readText")
-        .build()
+        };
+
+        NativeFunction::from_fn_ptr(func)
     }
 }
