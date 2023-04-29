@@ -49,11 +49,6 @@ impl Node {
     }
 
     fn get_element_by_id_fn(_: &mut Context, doc: *mut Document) -> NativeFunction {
-        #[derive(Debug, Clone, Trace, Finalize)]
-        struct TempDoc {
-            pub contents: String,
-        }
-
         unsafe {
             let get_closure =
                 move |_this: &JsValue, args: &[JsValue], _: &mut Context| -> JsResult<JsValue> {
