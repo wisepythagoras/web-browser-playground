@@ -36,8 +36,8 @@ impl Clipboard {
             // .property("writeText", write_text_fn, attribute)
             // .property("readText", read_text_fn, attribute)
             // .property(to_string_tag, Self::NAME, attribute)
-            .function(write_text_fn, "writeText", 1)
-            .function(read_text_fn, "readText", 1)
+            .function(write_text_fn, js_string!("writeText"), 1)
+            .function(read_text_fn, js_string!("readText"), 1)
             .build()
             .conv::<JsValue>()
             .pipe(Some)
@@ -59,10 +59,12 @@ impl Clipboard {
                 // let p = context.intrinsics().constructors().promise().constructor();
 
                 if args.len() < 1 {
-                    let p = Self::promise_to_js_value(JsPromise::reject(
-                        JsError::from_opaque(JsValue::from("No data to copy")),
+                    // JsPromise::new(executor, context);
+                    let rej_promise = JsPromise::reject(
+                        JsError::from_opaque(JsValue::from(js_string!("No data to copy"))),
                         context,
-                    ));
+                    );
+                    let p = Self::promise_to_js_value(Ok(rej_promise));
                     return Ok(p);
                 }
 
@@ -98,7 +100,7 @@ impl Clipboard {
                     }
                 };
 
-                Ok(Self::promise_to_js_value(res))
+                Ok(Self::promise_to_js_value(Ok(res)))
             };
 
         NativeFunction::from_fn_ptr(func)
@@ -121,16 +123,18 @@ impl Clipboard {
                         Ok(_) => {
                             temp_str = String::from_utf8_lossy(&contents).to_string();
                             let clip_value = JsValue::from(JsString::from(temp_str.as_str()));
-                            Ok(Self::promise_to_js_value(JsPromise::resolve(
+                            let res_promise = JsPromise::resolve(
                                 clip_value, context,
-                            )))
+                            );
+                            Ok(Self::promise_to_js_value(Ok(res_promise)))
                         }
                         Err(_) => {
                             let err_reason = JsValue::from(JsString::from("Unable to read"));
-                            Ok(Self::promise_to_js_value(JsPromise::reject(
+                            let rej_promise = JsPromise::reject(
                                 JsError::from_opaque(err_reason),
                                 context,
-                            )))
+                            );
+                            Ok(Self::promise_to_js_value(Ok(rej_promise)))
                         }
                     }
                 }
@@ -139,17 +143,19 @@ impl Clipboard {
                     match ctx.get_contents() {
                         Ok(val) => {
                             let clip_value = JsValue::from(JsString::from(val.as_str()));
-                            Ok(Self::promise_to_js_value(JsPromise::resolve(
+                            let res_promise = JsPromise::resolve(
                                 clip_value, context,
-                            )))
+                            );
+                            Ok(Self::promise_to_js_value(Ok(res_promise)))
                         }
                         Err(err2) => {
                             println!("{}, {}", err1, err2);
                             let err_reason = JsValue::from(JsString::from("Unable to read"));
-                            Ok(Self::promise_to_js_value(JsPromise::reject(
+                            let rej_promise = JsPromise::reject(
                                 JsError::from_opaque(err_reason),
                                 context,
-                            )))
+                            );
+                            Ok(Self::promise_to_js_value(Ok(rej_promise)))
                         }
                     }
                 }

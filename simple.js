@@ -19,7 +19,7 @@ console.log('-->', clipboard.writeText('dsa') instanceof Promise);
 
 document.getElementById('test');
 document.getElementById('a');
-document.getElementById();
+// document.getElementById();
 console.log(Date.now());
 
 (async () => {

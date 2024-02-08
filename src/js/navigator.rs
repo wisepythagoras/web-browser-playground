@@ -1,10 +1,6 @@
 use boa_engine::{
     // builtins::,
-    object::{builtins::JsArray, ObjectInitializer},
-    property::Attribute,
-    // symbol::WellKnownSymbols,
-    value::JsValue,
-    Context,
+    js_string, object::{builtins::JsArray, ObjectInitializer}, property::Attribute, value::JsValue, Context
     // JsResult,
 };
 
@@ -32,19 +28,19 @@ impl Navigator {
         let languages = JsArray::new(context);
 
         for val in LANGUAGES {
-            languages.push(*val, context).ok()?;
+            languages.push(js_string!(*val), context).ok()?;
         }
 
         ObjectInitializer::new(context)
-            .property("appCodeName", APP_NAME, attribute)
-            .property("appName", APP_NAME, attribute)
-            .property("appVersion", APP_VERSION, attribute)
-            .property("cookieEnabled", false, attribute)
-            .property("hardwareConcurrency", num_cpus::get(), attribute)
-            .property("language", locale, attribute)
-            .property("languages", languages, attribute)
-            .property("buildID", BUILD_ID, attribute)
-            .property("userAgent", Self::get_user_agent(), attribute)
+            .property(js_string!("appCodeName"), js_string!(APP_NAME), attribute)
+            .property(js_string!("appName"), js_string!(APP_NAME), attribute)
+            .property(js_string!("appVersion"), js_string!(APP_VERSION), attribute)
+            .property(js_string!("cookieEnabled"), false, attribute)
+            .property(js_string!("hardwareConcurrency"), num_cpus::get(), attribute)
+            .property(js_string!("language"),js_string!(locale), attribute)
+            .property(js_string!("languages"), languages, attribute)
+            .property(js_string!("buildID"), js_string!(BUILD_ID), attribute)
+            .property(js_string!("userAgent"), js_string!(Self::get_user_agent()), attribute)
             // .property(to_string_tag, Self::NAME, attribute)
             .build()
             .conv::<JsValue>()

@@ -1,6 +1,5 @@
 use boa_engine::{
-    object::ObjectInitializer, property::Attribute, symbol::JsSymbol, value::JsValue, Context,
-    JsString, NativeFunction,
+    js_string, object::ObjectInitializer, property::Attribute, symbol::JsSymbol, value::JsValue, Context, JsString, NativeFunction
 };
 
 use tap::{Conv, Pipe};
@@ -20,9 +19,9 @@ impl Console {
         let err_fn = Self::create_log_fn(context, "err");
 
         ObjectInitializer::new(context)
-            .function(log_fn, "log", 1)
-            .function(warn_fn, "warn", 1)
-            .function(err_fn, "error", 1)
+            .function(log_fn, js_string!("log"), 1)
+            .function(warn_fn, js_string!("warn"), 1)
+            .function(err_fn, js_string!("error"), 1)
             // .property("log", log_fn, attribute)
             // .property("warn", warn_fn, attribute)
             // .property("error", err_fn, attribute)
@@ -34,7 +33,7 @@ impl Console {
     }
 
     fn create_log_fn(context: &mut Context, name: &str) -> NativeFunction {
-        let func = |_this: &JsValue, args: &[JsValue], _: &mut Context<'_>| {
+        let func = |_this: &JsValue, args: &[JsValue], _: &mut Context| {
             let mut i = 0;
 
             while i < args.len() {
