@@ -2,16 +2,7 @@ extern crate libc;
 
 use crate::html::document::Document;
 use boa_engine::{
-    object::ObjectInitializer,
-    property::Attribute,
-    // symbol::WellKnownSymbols,
-    value::JsValue,
-    Context,
-    JsError,
-    JsNativeError,
-    JsResult,
-    JsString,
-    NativeFunction,
+    js_string, object::ObjectInitializer, property::Attribute, value::JsValue, Context, JsError, JsNativeError, JsResult, JsString, NativeFunction
 };
 use std::mem;
 
@@ -41,7 +32,7 @@ impl Node {
 
             ObjectInitializer::new(context)
                 // .property(to_string_tag, Self::NAME, attribute)
-                .function(get_id, "getElementById", 1)
+                .function(get_id, js_string!("getElementById"), 1)
                 .build()
                 .conv::<JsValue>()
                 .pipe(Some)

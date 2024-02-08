@@ -3,18 +3,35 @@ mod js {
     pub mod console;
     pub mod navigator;
     pub mod node;
+    pub mod person;
 }
 mod html {
     pub mod document;
     pub mod script;
 }
 
-use boa_engine::{property::Attribute, Context, JsResult, JsValue, NativeFunction, Source};
+use boa_engine::{
+    js_string,
+    property::Attribute,
+    Context,
+    JsResult,
+    JsString,
+    JsValue,
+    NativeFunction,
+    Source,
+};
+use boa_runtime::Console;
 use html::document;
-use js::{clipboard::Clipboard, console::Console, navigator::Navigator, node::Node};
+use js::{
+    clipboard::Clipboard,
+    navigator::Navigator,
+    node::Node,
+    person::Person,
+    // console::Console
+};
 use std::{env, fs, future::Future, process};
 
-fn test(_this: &JsValue, args: &[JsValue], context: &mut Context<'_>) -> JsResult<JsValue> {
+fn test(_this: &JsValue, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
     args.get(0)
         .cloned()
         .unwrap_or_default()
@@ -24,7 +41,7 @@ fn test(_this: &JsValue, args: &[JsValue], context: &mut Context<'_>) -> JsResul
 fn test2(
     _this: &JsValue,
     args: &[JsValue],
-    context: &mut Context<'_>,
+    context: &mut Context,
 ) -> impl Future<Output = JsResult<JsValue>> {
     let arg = args.get(0).cloned();
     let res = arg.unwrap_or_default().pow(&JsValue::new(2), context);
@@ -44,40 +61,50 @@ fn test2(
 
 fn init_browser(context: &mut Context, doc: Option<document::Document>) {
     context
-        .register_global_builtin_callable("myfn", 0, NativeFunction::from_fn_ptr(test))
+        .register_global_builtin_callable(JsString::from("myfn"), 0, NativeFunction::from_fn_ptr(test))
         .expect("Registers");
     context
-        .register_global_builtin_callable("myfn2", 1, NativeFunction::from_async_fn(test2))
+        .register_global_builtin_callable(JsString::from("myfn2"), 1, NativeFunction::from_async_fn(test2))
         .expect("Registers");
 
     let navigator = Navigator::init(context);
 
+    context
+        .register_global_class::<Person>()
+        .expect("the Person builtin shouldn't exist");
+
     match navigator {
         Some(val) => {
             context
-                .register_global_property("navigator", val, Attribute::READONLY)
+                .register_global_property(js_string!("navigator"), val, Attribute::READONLY)
                 .expect("Registers");
         }
         None => println!("Error assigning navigator"),
     };
 
     let console = Console::init(context);
+    context
+        .register_global_property(js_string!(Console::NAME), console, Attribute::all())
+        .expect("the console builtin shouldn't exist");
 
+    /*let console = Console::init(context);
+
+    context.register_global_property(key, value, attribute)
     match console {
         Some(val) => {
             context
-                .register_global_property("console", val, Attribute::READONLY)
+                .register_global_property(js_string!("console"), val, Attribute::READONLY)
                 .expect("Registers");
         }
         None => println!("Error assigning console"),
-    };
+    };*/
 
     let clipboard = Clipboard::init(context);
 
     match clipboard {
         Some(val) => {
             context
-                .register_global_property("clipboard", val, Attribute::READONLY)
+                .register_global_property(js_string!("clipboard"), val, Attribute::READONLY)
                 .expect("Registers");
         }
         None => println!("Error assigning clipboard"),
@@ -90,7 +117,7 @@ fn init_browser(context: &mut Context, doc: Option<document::Document>) {
             match document_node {
                 Some(val) => {
                     context
-                        .register_global_property("document", val, Attribute::READONLY)
+                        .register_global_property(js_string!("document"), val, Attribute::READONLY)
                         .expect("Registers");
                 }
                 None => println!("Error assigning document"),
@@ -131,7 +158,7 @@ fn main() {
     let mut context = Context::default();
     init_browser(&mut context, html_doc);
 
-    let res = context.eval_script(Source::from_bytes(js_data.as_str()));
+    let res = context.eval(Source::from_bytes(js_data.as_str()));
     context.run_jobs();
 
     match res {
