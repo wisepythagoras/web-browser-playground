@@ -18,6 +18,7 @@ console.log('-->', clipboard.writeText('dsa') instanceof Promise);
 //     .finally(() => console.log('Finally'));
 
 document.getElementById('test');
+console.log('Got it');
 document.getElementById('a');
 // document.getElementById();
 console.log(Date.now());

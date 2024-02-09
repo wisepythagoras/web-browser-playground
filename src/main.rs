@@ -4,6 +4,8 @@ mod js {
     pub mod navigator;
     pub mod node;
     pub mod person;
+    pub mod fetch;
+    pub mod json;
 }
 mod html {
     pub mod document;
@@ -14,11 +16,12 @@ use boa_engine::{
     js_string,
     property::Attribute,
     Context,
+    JsError,
     JsResult,
     JsString,
     JsValue,
     NativeFunction,
-    Source,
+    Source
 };
 use boa_runtime::Console;
 use html::document;
@@ -27,7 +30,8 @@ use js::{
     navigator::Navigator,
     node::Node,
     person::Person,
-    // console::Console
+    fetch::fetch_fn,
+    json::JSON,
 };
 use std::{env, fs, future::Future, process};
 
@@ -66,12 +70,38 @@ fn init_browser(context: &mut Context, doc: Option<document::Document>) {
     context
         .register_global_builtin_callable(JsString::from("myfn2"), 1, NativeFunction::from_async_fn(test2))
         .expect("Registers");
+    context
+        .register_global_builtin_callable(JsString::from("fetch"), 1, NativeFunction::from_async_fn(fetch_fn))
+        .expect("Registers");
 
-    let navigator = Navigator::init(context);
+    let json_p = JSON::init(context);
+
+    context
+        .register_global_property(js_string!("JSON"), json_p, Attribute::READONLY)
+        .expect("the Person builtin shouldn't exist");
 
     context
         .register_global_class::<Person>()
         .expect("the Person builtin shouldn't exist");
+
+    // ---------
+    let person_class = context.get_global_class::<Person>();
+
+    let person_constructor = match person_class {
+        Some(val) => {
+            let args: &[JsValue] = &[JsValue::from(js_string!("Jane")), JsValue::from(31)];
+            let constructor = &val.constructor();
+            constructor.construct(args, Some(constructor), context).map(JsValue::from)
+        }
+        None => Err(JsError::from_opaque(JsValue::from(js_string!("s"))))
+    };
+    let v = person_constructor.expect("it's initialized");
+    context
+        .register_global_property(js_string!("myPerson"), v, Attribute::READONLY)
+        .expect("myPerson shouldn't exist");
+    // ---------
+
+    let navigator = Navigator::init(context);
 
     match navigator {
         Some(val) => {
@@ -157,6 +187,7 @@ fn main() {
 
     let mut context = Context::default();
     init_browser(&mut context, html_doc);
+    println!("init_browser");
 
     let res = context.eval(Source::from_bytes(js_data.as_str()));
     context.run_jobs();

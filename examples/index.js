@@ -30,5 +30,5 @@ console.log('Here');
 myfn2(234).then((r) => {
     console.log('Result: ', r);
 }).catch((e) => console.error('Exception', e));
-console.log(navigator);
+console.log(navigator, clipboard.writeText, console.log);
 console.log('myfn(123) =', myfn(123));

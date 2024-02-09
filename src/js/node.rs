@@ -4,7 +4,7 @@ use crate::html::document::Document;
 use boa_engine::{
     js_string, object::ObjectInitializer, property::Attribute, value::JsValue, Context, JsError, JsNativeError, JsResult, JsString, NativeFunction
 };
-use std::mem;
+use std::{alloc::{alloc, dealloc, Layout}, mem};
 
 use boa_gc::{Finalize, Trace};
 use tap::{Conv, Pipe};
@@ -25,9 +25,21 @@ impl Node {
         // let to_string_tag = WellKnownSymbols::to_string_tag();
 
         unsafe {
-            let doc_raw_ptr: *mut Document =
+            /*let doc_raw_ptr: *mut Document =
                 libc::malloc(mem::size_of::<Document>()) as *mut Document;
-            *doc_raw_ptr = doc.clone();
+
+            if doc_raw_ptr.is_null() {
+                panic!("failed to allocate memory");
+            }
+
+            *doc_raw_ptr = doc.clone();*/
+
+            let layout = Layout::new::<Document>();
+            let doc_raw_ptr = alloc(layout) as *mut Document;
+            println!("is_null = {}, size = {}", doc_raw_ptr.is_null(), layout.size());
+
+            *(doc_raw_ptr as *mut Document) = doc.clone();
+
             let get_id = Self::get_element_by_id_fn(context, doc_raw_ptr);
 
             ObjectInitializer::new(context)
@@ -59,6 +71,7 @@ impl Node {
                         },
                         None => &temp,
                     };
+                    println!("HERE!!!!");
 
                     match (*doc).get_element_by_id(query_id.to_std_string().unwrap()) {
                         Some(a) => {
