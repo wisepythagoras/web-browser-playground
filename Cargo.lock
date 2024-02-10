@@ -2588,6 +2588,7 @@ dependencies = [
  "num_cpus",
  "reqwest",
  "scraper",
+ "serde_json",
  "sys-locale",
  "tap",
  "tokio",

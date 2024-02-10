@@ -13,3 +13,15 @@ console.log(res.nested.a);
 for (const v of res.nested.arr) {
     console.log(v);
 }
+
+console.log('---');
+
+const a = JSON.stringify([123, {}]);
+const b = JSON.stringify({
+    a: 123,
+    b: {
+        c: [1, 2, 3, 4],
+    }
+});
+
+console.log(a, b);
