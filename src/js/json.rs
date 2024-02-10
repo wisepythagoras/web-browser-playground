@@ -1,6 +1,6 @@
 use boa_engine::{
     js_string,
-    object::ObjectInitializer,
+    object::{builtins::JsArray, ObjectInitializer},
     property::Attribute,
     value::JsValue,
     Context,
@@ -26,38 +26,58 @@ impl JSON {
             .build()
     }
 
+    fn json_value_to_js_value(v: &JsonValue, context: &mut Context) -> JsValue {
+        let mut val: JsValue = JsValue::undefined();
+
+        if v.is_number() {
+            val = JsValue::from(v.as_f64().expect("a number should be parsed"));
+        } else if v.is_string() {
+            val = JsValue::from(JsString::from(v.as_str().expect("a string should be parsed")));
+        } else if v.is_boolean() {
+            val = JsValue::from(v.as_bool().expect("a boolean is parsed"));
+        } else if v.is_null() {
+            val = JsValue::null();
+        } else if v.is_object() || v.is_array() {
+            val = JsValue::from(Self::obj_to_js_object(v.clone(), context));
+        }
+
+        return val;
+    }
+
     fn obj_to_js_object(val: JsonValue, context: &mut Context) -> JsObject {
-        if val.is_object() {
-            let mut iter = val.entries();
+        if val.is_object() || val.is_array() {
+            let is_array = val.is_array();
             let mut properties: Vec<(&str, JsValue)> = Vec::new();
 
-            while let Some((k, v)) = iter.next() {
-                let mut val = JsValue::undefined();
+            if !is_array {
+                let mut iter = val.entries();
 
-                if v.is_number() {
-                    val = JsValue::from(v.as_f64().expect("a number should be parsed"));
-                } else if v.is_string() {
-                    val = JsValue::from(JsString::from(v.as_str().expect("a string should be parsed")));
-                } else if v.is_boolean() {
-                    val = JsValue::from(v.as_bool().expect("a boolean is parsed"));
-                } else if v.is_null() {
-                    val = JsValue::null();
-                } else if v.is_object() {
-                    val = JsValue::from(Self::obj_to_js_object(v.clone(), context));
+                while let Some((k, v)) = iter.next() {
+                    properties.push((k, Self::json_value_to_js_value(v, context)));
                 }
 
-                properties.push((k, val));
+                let mut obj_init = ObjectInitializer::new(context);
+
+                for (k, v) in properties {
+                    obj_init.property(js_string!(k), v, Attribute::empty());
+                }
+
+                return obj_init.build();
+            } else {
+                let arr = JsArray::new(context);
+                let mut iter = val.members();
+                let mut properties: Vec<JsValue> = Vec::new();
+
+                while let Some(v) = iter.next() {
+                    properties.push(Self::json_value_to_js_value(v, context));
+                }
+
+                for v in properties {
+                    arr.push(v, context).expect("Value is pushed");
+                }
+
+                return JsObject::from(arr);
             }
-
-            let mut obj_init = ObjectInitializer::new(context);
-
-            for (k, v) in properties {
-                obj_init.property(js_string!(k), v, Attribute::empty());
-            }
-
-            let obj = obj_init.build();
-
-            return obj;
         }
 
         JsObject::default()
