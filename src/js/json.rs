@@ -1,9 +1,16 @@
 use std::hash::Hash;
 
 use boa_engine::{
-    js_string, object::{builtins::{JsArray, JsArrayBuffer}, ObjectInitializer}, property::Attribute, value::{JsValue, TryFromJs}, Context, JsNativeError, JsObject, JsResult, JsString, NativeFunction
+    js_string,
+    object::ObjectInitializer,
+    value::JsValue,
+    Context,
+    JsNativeError,
+    JsObject,
+    JsResult,
+    JsString,
+    NativeFunction
 };
-use json::JsonValue;
 use serde_json::Value;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
