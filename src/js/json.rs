@@ -1,10 +1,14 @@
-use std::borrow::Borrow;
-
 use boa_engine::{
-    js_string, object::ObjectInitializer, property::Attribute, value::JsValue, Context, JsObject, JsString, NativeFunction
+    js_string,
+    object::ObjectInitializer,
+    property::Attribute,
+    value::JsValue,
+    Context,
+    JsObject,
+    JsString,
+    NativeFunction
 };
 use json::JsonValue;
-use tap::Pipe;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct JSON;
