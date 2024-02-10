@@ -17,8 +17,8 @@ impl JSON {
     const NAME: &'static str = "JSON";
 
     pub(crate) fn init(context: &mut Context) -> JsObject {
-        let parse_fn = Self::create_parse_fn(context);
-        let stringify_fn = Self::create_stringify_fn(context);
+        let parse_fn = Self::create_parse_fn();
+        let stringify_fn = Self::create_stringify_fn();
 
         ObjectInitializer::new(context)
             .function(parse_fn, js_string!("parse"), 1)
@@ -63,7 +63,7 @@ impl JSON {
         JsObject::default()
     }
 
-    fn create_parse_fn(context: &mut Context) -> NativeFunction {
+    fn create_parse_fn() -> NativeFunction {
         let func = |_this: &JsValue, args: &[JsValue], ctx: &mut Context| {
             let raw_val = args
                 .get(0)
@@ -74,7 +74,6 @@ impl JSON {
                 .expect("First argument is a string")
                 .to_std_string_escaped();
             let val_str = val.as_str();
-            // let mut obj_init = ObjectInitializer::new(ctx);
 
             let parse_result = json::parse(val_str);
             let ret_val = match parse_result {
@@ -91,11 +90,10 @@ impl JSON {
             Ok(ret_val)
         };
 
-        // NativeFunction::from_copy_closure(func)
         NativeFunction::from_fn_ptr(func)
     }
 
-    fn create_stringify_fn(context: &mut Context) -> NativeFunction {
+    fn create_stringify_fn() -> NativeFunction {
         let func = |_this: &JsValue, args: &[JsValue], _: &mut Context| {
             Ok(JsValue::Undefined)
         };
