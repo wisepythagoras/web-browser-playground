@@ -25,6 +25,7 @@ impl Node {
         // let to_string_tag = WellKnownSymbols::to_string_tag();
 
         unsafe {
+            // TODO: Assigning to the raw pointer causes an error with free().
             /*let doc_raw_ptr: *mut Document =
                 libc::malloc(mem::size_of::<Document>()) as *mut Document;
 

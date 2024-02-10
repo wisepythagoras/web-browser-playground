@@ -1,6 +1,10 @@
+use std::borrow::Borrow;
+
 use boa_engine::{
     js_string, object::ObjectInitializer, property::Attribute, value::JsValue, Context, JsObject, JsString, NativeFunction
 };
+use json::JsonValue;
+use tap::Pipe;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct JSON;
@@ -18,6 +22,43 @@ impl JSON {
             .build()
     }
 
+    fn obj_to_js_object(val: JsonValue, context: &mut Context) -> JsObject {
+        if val.is_object() {
+            let mut iter = val.entries();
+            let mut properties: Vec<(&str, JsValue)> = Vec::new();
+
+            while let Some((k, v)) = iter.next() {
+                let mut val = JsValue::undefined();
+
+                if v.is_number() {
+                    val = JsValue::from(v.as_f64().expect("a number should be parsed"));
+                } else if v.is_string() {
+                    val = JsValue::from(JsString::from(v.as_str().expect("a string should be parsed")));
+                } else if v.is_boolean() {
+                    val = JsValue::from(v.as_bool().expect("a boolean is parsed"));
+                } else if v.is_null() {
+                    val = JsValue::null();
+                } else if v.is_object() {
+                    val = JsValue::from(Self::obj_to_js_object(v.clone(), context));
+                }
+
+                properties.push((k, val));
+            }
+
+            let mut obj_init = ObjectInitializer::new(context);
+
+            for (k, v) in properties {
+                obj_init.property(js_string!(k), v, Attribute::empty());
+            }
+
+            let obj = obj_init.build();
+
+            return obj;
+        }
+
+        JsObject::default()
+    }
+
     fn create_parse_fn(context: &mut Context) -> NativeFunction {
         let func = |_this: &JsValue, args: &[JsValue], ctx: &mut Context| {
             let raw_val = args
@@ -29,30 +70,12 @@ impl JSON {
                 .expect("First argument is a string")
                 .to_std_string_escaped();
             let val_str = val.as_str();
-            let mut obj_init = ObjectInitializer::new(ctx);
+            // let mut obj_init = ObjectInitializer::new(ctx);
 
             let parse_result = json::parse(val_str);
             let ret_val = match parse_result {
                 Ok(parsed) => {
-                    let mut iter = parsed.entries();
-
-                    while let Some((k, v)) = iter.next() {
-                        let mut val = JsValue::undefined();
-
-                        if v.is_number() {
-                            val = JsValue::from(v.as_f64().expect("a number should be parsed"));
-                        } else if v.is_string() {
-                            val = JsValue::from(JsString::from(v.as_str().expect("a string should be parsed")));
-                        } else if v.is_boolean() {
-                            val = JsValue::from(v.as_bool().expect("a boolean is parsed"));
-                        } else if v.is_null() {
-                            val = JsValue::null();
-                        }
-
-                        obj_init.property(js_string!(k), val, Attribute::empty());
-                    }
-
-                    let obj = obj_init.build();
+                    let obj = Self::obj_to_js_object(parsed, ctx);
                     JsValue::from(obj)
                 }
                 Err(err) => {
