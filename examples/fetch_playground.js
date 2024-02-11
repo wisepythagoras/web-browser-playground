@@ -8,3 +8,10 @@
         method: 'POST',
     });
 })();
+
+(async () => {
+    const response = new Response('{"a":2}');
+    const json = await response.json();
+
+    console.log(json.a);
+})();

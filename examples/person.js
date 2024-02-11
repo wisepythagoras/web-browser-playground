@@ -1,5 +1,6 @@
 let person = new Person('John', 19);
 person.sayHello();
+console.log('Name', person.name);
 
 if (Person.is(person)) {
     console.log('person is a Person class instance.');
@@ -13,4 +14,4 @@ console.log(person.inheritedProperty);
 console.log(Person.prototype.inheritedProperty === person.inheritedProperty);
 
 console.log('--->');
-console.log(myPerson.sayHello());
+console.log(myPerson.sayHello(), myPerson.name, myPerson.age);

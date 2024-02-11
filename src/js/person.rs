@@ -1,12 +1,7 @@
 // NOTE: This code came from the examples. It's here only to be a frame of reference. The original
 // license from Boa applies to this code, and not the license provided in this repository.
 use boa_engine::{
-    class::{Class, ClassBuilder},
-    error::JsNativeError,
-    js_string,
-    native_function::NativeFunction,
-    property::Attribute,
-    Context, JsArgs, JsData, JsResult, JsString, JsValue, Source,
+    class::{Class, ClassBuilder}, error::JsNativeError, js_string, native_function::NativeFunction, property::Attribute, Context, JsArgs, JsData, JsObject, JsResult, JsString, JsValue, Source
 };
 
 use boa_gc::{Finalize, Trace};
@@ -67,7 +62,7 @@ impl Class for Person {
 
     // This is what is internally called when we construct a `Person` with the expression `new Person()`.
     fn data_constructor(
-        _this: &JsValue,
+        this: &JsValue,
         args: &[JsValue],
         context: &mut Context,
     ) -> JsResult<Self> {
@@ -87,6 +82,21 @@ impl Class for Person {
         let person = Person { name, age };
 
         Ok(person) // and we return it.
+    }
+
+    fn object_constructor(
+        instance: &JsObject,
+        args: &[JsValue],
+        context: &mut Context,
+    ) -> JsResult<()> {
+        let name = args.get_or_undefined(0).to_string(context)?;
+        let age = args.get_or_undefined(1).to_number(context)?;
+
+        // Roughly equivalent to `this.age = Number(age)`.
+        instance.set(js_string!("name"), name, true, context)?;
+        instance.set(js_string!("age"), age, true, context)?;
+
+        Ok(())
     }
 
     /// Here is where the class is initialized.

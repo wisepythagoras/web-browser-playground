@@ -6,6 +6,8 @@ mod js {
     pub mod person;
     pub mod fetch;
     pub mod json;
+    pub mod response;
+    pub mod utils;
 }
 mod html {
     pub mod document;
@@ -32,6 +34,7 @@ use js::{
     person::Person,
     fetch::fetch_fn,
     json::JSON,
+    response::Response,
 };
 use std::{env, fs, future::Future, process};
 
@@ -83,6 +86,10 @@ fn init_browser(context: &mut Context, doc: Option<document::Document>) {
     context
         .register_global_class::<Person>()
         .expect("the Person builtin shouldn't exist");
+
+    context
+        .register_global_class::<Response>()
+        .expect("the Response builtin shouldn't exist");
 
     // ---------
     let person_class = context.get_global_class::<Person>();
