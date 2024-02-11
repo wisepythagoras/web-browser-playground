@@ -15,9 +15,9 @@ use crate::js::utils;
 /// Represents a `Person` object.
 #[derive(Debug, Trace, Finalize, JsData)]
 pub(crate) struct Response {
-    pub status: u16,
+    status: u16,
     body: JsString,
-    pub body_used: bool,
+    body_used: bool,
     ok: bool,
 }
 
@@ -37,6 +37,9 @@ impl Response {
         let ret_val = JsValue::from_json(&v, context);
 
         async move {
+            // TODO: Mark the body used here and prevent other instance function, such as `text` from
+            // consuming the body.
+
             match ret_val {
                 Ok(val) => Ok(val),
                 Err(e) => {
@@ -52,8 +55,17 @@ impl Response {
         }
     }
 
-    fn text(this: &JsValue, _: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
-        Ok(JsValue::undefined())
+    fn text(this: &JsValue, _: &[JsValue], _: &mut Context) -> impl Future<Output = JsResult<JsValue>> {
+        let object = this.as_object().expect("parses into an object");
+        let response = object.downcast_ref::<Response>().expect("is a response object");
+        let val = response.body
+            .to_std_string()
+            .expect("body is a string");
+        
+        async move {
+            let val = JsValue::from(JsString::from(val));
+            Ok(val)
+        }
     }
 
     fn clone(this: &JsValue, _: &[JsValue], _: &mut Context) -> JsResult<JsValue> {
@@ -108,6 +120,12 @@ impl Class for Response {
             js_string!("json"),
             0,
             NativeFunction::from_async_fn(Self::json),
+        );
+
+        class.method(
+            js_string!("text"),
+            0,
+            NativeFunction::from_async_fn(Self::text),
         );
 
         Ok(())
