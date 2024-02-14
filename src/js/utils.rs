@@ -9,3 +9,10 @@ pub fn promise_to_js_value(incomplete_promise: JsResult<JsPromise>) -> JsValue {
         Err(_) => JsValue::undefined(),
     }
 }
+
+pub fn js_promise_to_js_value(promise: JsPromise) -> JsValue {
+    match JsValue::try_from(promise) {
+        Ok(v) => v,
+        Err(_) => JsValue::undefined(),
+    }
+}

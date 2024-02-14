@@ -4,9 +4,9 @@
     });
     console.log('Response', resp);
 
-    await fetch('/', {
-        method: 'POST',
-    });
+    // await fetch('/', {
+    //     method: 'POST',
+    // });
 })();
 
 (async () => {
@@ -15,3 +15,12 @@
 
     console.log(json.a);
 })();
+
+(async () => {
+    // let fetch2 = fetch
+    const res = await fetch2('https://httpbin.org/ip');
+    const json = await res.json();
+    console.log('res =', json.origin);
+})();
+
+console.log('I am right here');

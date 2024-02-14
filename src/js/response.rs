@@ -3,8 +3,8 @@ use boa_engine::{
 };
 use boa_gc::{Finalize, Trace};
 use serde_json::Value;
-use std::{borrow::Borrow, future::Future};
-use crate::js::utils;
+use std::future::Future;
+// use crate::js::utils;
 
 // We create a new struct that is going to represent a person.
 //
@@ -85,6 +85,7 @@ impl Response {
     }
 }
 
+// https://developer.mozilla.org/en-US/docs/Web/API/Response/Response
 impl Class for Response {
     const NAME: &'static str = "Response";
 

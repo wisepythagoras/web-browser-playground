@@ -28,13 +28,7 @@ use boa_engine::{
 use boa_runtime::Console;
 use html::document;
 use js::{
-    clipboard::Clipboard,
-    navigator::Navigator,
-    node::Node,
-    person::Person,
-    fetch::fetch_fn,
-    json::JSON,
-    response::Response,
+    clipboard::Clipboard, fetch::{fetch2, fetch_fn}, json::JSON, navigator::Navigator, node::Node, person::Person, response::Response
 };
 use std::{env, fs, future::Future, process};
 
@@ -75,6 +69,9 @@ fn init_browser(context: &mut Context, doc: Option<document::Document>) {
         .expect("Registers");
     context
         .register_global_builtin_callable(JsString::from("fetch"), 1, NativeFunction::from_async_fn(fetch_fn))
+        .expect("Registers");
+    context
+        .register_global_builtin_callable(JsString::from("fetch2"), 0, NativeFunction::from_fn_ptr(fetch2))
         .expect("Registers");
 
     let json_p = JSON::init(context);
