@@ -1,4 +1,4 @@
-use std::{cell::RefCell, future::{Future}};
+use std::{borrow::Borrow, cell::RefCell, future::Future};
 use boa_engine::{
     js_string, object::builtins::JsPromise, Context, JsError, JsNativeError, JsResult, JsString, JsValue
 };
